@@ -1,0 +1,16 @@
+# Datos
+data/raw/
+data/processed/
+data/labels/
+models/*.pth
+results/
+images/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Sistema
+.DS_Store
+*.log
