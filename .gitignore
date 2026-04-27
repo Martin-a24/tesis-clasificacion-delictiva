@@ -1,5 +1,7 @@
 # Datos pesados (no se versionan)
-data/raw/
+data/raw/*
+!data/raw/delitos/
+!data/raw/delitos/*.csv
 data/processed/
 data/labels/
 models/*.pth
