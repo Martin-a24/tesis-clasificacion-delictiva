@@ -1,16 +1,46 @@
-# Datos
+# Datos pesados (no se versionan)
 data/raw/
 data/processed/
 data/labels/
 models/*.pth
+models/*.pt
+models/*.h5
 results/
-images/
 
 # Python
-venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+.ipynb_checkpoints/
 
-# Sistema
+# Jupyter
+.jupyter/
+
+# Sistema operativo
 .DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs y temporales
 *.log
+*.tmp
+tmp/
+temp/
+
+# Imagenes temporales fuera de results/
+*.png.tmp
+
+# Conda
+.conda/
+miniconda3/

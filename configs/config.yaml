@@ -1,0 +1,55 @@
+# Configuracion del proyecto
+# Las rutas son relativas a la raiz del proyecto.
+
+# Rutas de datos
+paths:
+  raw:
+    delitos: "data/raw/delitos"
+    imagenes_ms: "data/raw/imagenes_perusat/ESPECTRAL"
+    imagenes_pan: "data/raw/imagenes_perusat/PANCROMATICA"
+
+  processed:
+    delitos: "data/processed/delitos_limpios"
+    pansharpened: "data/processed/imagenes_pansharpened"
+    tiles: "data/processed/tiles"
+
+  labels: "data/labels"
+  models: "models"
+  results: "results"
+
+# Parametros de procesamiento
+tiles:
+  size: 512                  # pixeles por lado
+  min_valid_ratio: 0.95      # minimo de pixeles no-cero
+  ndwi_water_threshold: 0.3  # umbral NDWI para considerar pixel como agua
+  max_water_ratio: 0.5       # maximo de pixeles agua para no descartar tile
+  ndwi_band_green: 2         # banda verde (1-indexed): B,G,R,NIR -> 2
+  ndwi_band_nir: 4           # banda NIR (1-indexed)
+
+pansharpening:
+  resampling: "cubic"
+  compress: "LZW"
+
+# Filtros de delitos
+delitos:
+  bbox_lima:
+    lat_min: -12.52
+    lat_max: -11.57
+    lon_min: -77.22
+    lon_max: -76.62
+
+  ubicaciones_validas:
+    - ["LIMA", "LIMA"]
+    - ["LIMA METROPOLITANA", "LIMA"]
+    - ["CALLAO", "CALLAO"]
+
+  subtipos: ["ROBO", "HURTO"]
+  estados_validos: [1, 2]
+
+# Etiquetado por nivel de riesgo
+etiquetado:
+  niveles: ["bajo", "medio", "alto"]
+  percentil_bajo: 33
+  percentil_alto: 67
+  normalizar_poblacion: false   # cambiar a true cuando uses WorldPop
+  worldpop_path: "data/raw/worldpop/per_ppp_2020.tif"  # opcional

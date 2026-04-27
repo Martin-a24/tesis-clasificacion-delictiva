@@ -1,0 +1,43 @@
+# Dependencias del proyecto (referencia, se prefiere environment.yml)
+# Usar solo si conda no esta disponible.
+
+# GDAL y rasterio son problematicos con pip en algunos sistemas.
+# Si se usa pip, se instala primero los paquetes del sistema:
+#   sudo apt install libgdal-dev gdal-bin python3-gdal
+
+# Geoespatial
+gdal
+rasterio>=1.3
+geopandas>=0.14
+shapely>=2.0
+pyproj
+fiona
+
+# Computacion cientifica
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+seaborn
+
+# Imagenes
+pillow
+opencv-python
+
+# Excel
+openpyxl
+
+# Deep Learning
+torch
+torchvision
+grad-cam
+
+# Notebooks
+jupyter
+ipykernel
+
+# Utilidades
+tqdm
+pyyaml
+requests

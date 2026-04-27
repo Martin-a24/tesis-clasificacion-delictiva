@@ -1,0 +1,52 @@
+name: tesis
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+  - defaults
+
+dependencies:
+  # Python base
+  - python=3.11
+  - pip
+
+  # Geoespatial (todo desde conda-forge para evitar conflictos)
+  - gdal
+  - rasterio
+  - geopandas
+  - shapely
+  - pyproj
+  - fiona
+
+  # Computacion cientifica
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - seaborn
+
+  # Procesamiento de imagenes
+  - pillow
+  - opencv
+
+  # Excel/CSV
+  - openpyxl
+
+  # Notebooks
+  - jupyter
+  - ipykernel
+
+  # PyTorch con CUDA (ajustar version segun la GPU del servidor)
+  - pytorch
+  - torchvision
+  - pytorch-cuda=12.1
+
+  # Utilidades
+  - tqdm
+  - pyyaml
+  - requests
+
+  # Pip-only (no estan en conda)
+  - pip:
+      - grad-cam
