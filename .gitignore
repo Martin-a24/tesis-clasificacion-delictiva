@@ -3,6 +3,7 @@ data/raw/*
 !data/raw/delitos/
 !data/raw/delitos/*.csv
 data/processed/
+data/worldpop
 data/labels/
 models/*.pth
 models/*.pt
@@ -46,3 +47,6 @@ temp/
 # Conda
 .conda/
 miniconda3/
+
+test_bandas.py
+test_nubes.py
