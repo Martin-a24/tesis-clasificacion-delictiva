@@ -1,16 +1,13 @@
 name: tesis
 channels:
   - conda-forge
-  - pytorch
-  - nvidia
   - defaults
-
 dependencies:
   # Python base
   - python=3.11
   - pip
 
-  # Geoespatial (todo desde conda-forge para evitar conflictos)
+  # Geoespatial (conda-forge para evitar conflictos con GDAL)
   - gdal
   - rasterio
   - geopandas
@@ -37,16 +34,18 @@ dependencies:
   - jupyter
   - ipykernel
 
-  # PyTorch con CUDA (ajustar version segun la GPU del servidor)
-  - pytorch
-  - torchvision
-  - pytorch-cuda=12.1
-
   # Utilidades
   - tqdm
   - pyyaml
   - requests
 
-  # Pip-only (no estan en conda)
+  # PyTorch y dependencias CNN (vía pip para soporte CUDA correcto)
   - pip:
+      # PyTorch con CUDA 12.4 (compatible con drivers CUDA 12.x y 13.x)
+      - --extra-index-url https://download.pytorch.org/whl/cu124
+      - torch
+      - torchvision
+      - torchaudio
+
+      # Grad-CAM para interpretabilidad (Objetivo 3)
       - grad-cam
