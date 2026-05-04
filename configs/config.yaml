@@ -1,12 +1,15 @@
 # Configuracion del proyecto
 # Las rutas son relativas a la raiz del proyecto.
 
-# Rutas de datos
+# ============================================================
+# RUTAS DE DATOS
+# ============================================================
 paths:
   raw:
     delitos: "data/raw/delitos"
     imagenes_ms: "data/raw/imagenes_perusat/ESPECTRAL"
     imagenes_pan: "data/raw/imagenes_perusat/PANCROMATICA"
+    limites_urbanos: "data/raw/limites/lima_metropolitana.geojson"
 
   processed:
     delitos: "data/processed/delitos_limpios"
@@ -17,7 +20,9 @@ paths:
   models: "models"
   results: "results"
 
-# Parametros de procesamiento
+# ============================================================
+# PREPROCESAMIENTO DE TILES
+# ============================================================
 tiles:
   size: 512                  # pixeles por lado
   min_valid_ratio: 0.95      # minimo de pixeles no-cero
@@ -25,15 +30,19 @@ tiles:
   max_water_ratio: 0.5       # maximo de pixeles agua para no descartar tile
   ndwi_band_green: 2         # banda verde (1-indexed): B,G,R,NIR -> 2
   ndwi_band_nir: 4           # banda NIR (1-indexed)
+  use_urban_filter: true
+  min_urban_overlap: 0.5     # tile debe tener al menos 50% de su area dentro del poligono urbano
+  use_cloud_filter: false    #Filtro de nubes
   cloud_brightness_threshold: 1100  # umbral de brillo para detectar nubes (en escala DN, ajustar segun imagenes)
-  cloud_std_threshold: 100 
-  max_cloud_ratio: 0.8    # maximo de pixeles nubes para no descartar tile
+  max_cloud_ratio: 0.8       # maximo de pixeles nubes para no descartar tile
 
 pansharpening:
   resampling: "cubic"
   compress: "LZW"
 
-# Filtros de delitos
+# ============================================================
+# DELITOS
+# ============================================================
 delitos:
   bbox_lima:
     lat_min: -12.52
@@ -49,10 +58,85 @@ delitos:
   subtipos: ["ROBO", "HURTO"]
   estados_validos: [1, 2]
 
-# Etiquetado por nivel de riesgo
+# ============================================================
+# ETIQUETADO
+# ============================================================
 etiquetado:
   niveles: ["bajo", "medio", "alto"]
   percentil_bajo: 33
   percentil_alto: 67
-  normalizar_poblacion: true   # cambiar a true cuando se use WorldPop
+  normalizar_poblacion: false   # cambiar a true cuando se use WorldPop
   worldpop_path: "data/raw/worldpop/per_ppp_2020.tif"  # opcional
+  use_global_thresholds: true
+  global_grid_tile_size_m: 358  # ~512 px a 0.7 m/px
+
+# ============================================================
+# SPLITS DEL DATASET (Script 05)
+# ============================================================
+splits:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  random_seed: 42
+  stratify_by: "nivel_riesgo"  # estratifica para mantener proporcion de clases
+ 
+# ============================================================
+# ENTRENAMIENTO DEL MODELO (Script 06)
+# ============================================================
+modelo:
+  # Arquitectura: una de [resnet18, resnet50, efficientnet_b0, vit_b_16]
+  architecture: "resnet18"
+ 
+  # Pesos pre-entrenados
+  pretrained: true
+ 
+  # Numero de bandas de entrada (PeruSAT-1 tiene 4: B, G, R, NIR)
+  in_channels: 4
+ 
+  # Numero de clases (alto, medio, bajo)
+  num_classes: 3
+ 
+entrenamiento:
+  batch_size: 16
+  num_epochs: 50
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  optimizer: "adam"  # adam o sgd
+ 
+  # Scheduler de learning rate
+  use_scheduler: true
+  scheduler_step_size: 10
+  scheduler_gamma: 0.5
+ 
+  # Early stopping
+  use_early_stopping: true
+  early_stopping_patience: 10
+ 
+  # Manejo de desbalance de clases
+  use_class_weights: true
+  use_focal_loss: false  # alternativa a CrossEntropy ponderado
+ 
+  # Data augmentation
+  use_augmentation: true
+ 
+  # Reproducibilidad
+  random_seed: 42
+ 
+  # Hardware
+  device: "cuda"  # cuda o cpu
+  num_workers: 4
+  pin_memory: true
+ 
+# ============================================================
+# EVALUACION (Script 07)
+# ============================================================
+evaluacion:
+  # Generar matriz de confusion
+  generate_confusion_matrix: true
+ 
+  # Comparar con baselines
+  compare_baselines: true
+ 
+  # Guardar predicciones detalladas por tile
+  save_predictions: true
+ 
