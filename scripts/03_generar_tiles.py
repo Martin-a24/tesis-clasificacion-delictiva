@@ -114,7 +114,7 @@ def cargar_poligono_urbano(path, crs_destino):
         gdf = gdf.set_crs("EPSG:4326")
     if gdf.crs != crs_destino:
         gdf = gdf.to_crs(crs_destino)
-    poligono = gdf.geometry.unary_union
+    poligono = gdf.geometry.union_all()
     print(f"  Area urbana: {poligono.area / 1e6:.0f} km2")
     return poligono
  

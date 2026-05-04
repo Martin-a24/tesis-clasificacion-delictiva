@@ -324,7 +324,7 @@ if __name__ == "__main__":
     gdf_limites = gpd.read_file(LIMITES_PATH)
     if gdf_limites.crs != tiles_reales.crs:
         gdf_limites = gdf_limites.to_crs(tiles_reales.crs)
-    poligono_urbano = gdf_limites.geometry.unary_union
+    poligono_urbano = gdf_limites.geometry.union_all()
 
     grilla_virtual = construir_grilla_virtual(poligono_urbano, GRID_SIZE_M, tiles_reales.crs)
     grilla_virtual = calcular_densidades(grilla_virtual, delitos, NORMALIZAR, WORLDPOP_PATH)

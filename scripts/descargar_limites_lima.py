@@ -48,7 +48,6 @@ DISTRITOS_PATH = OUTPUT_DIR / "distritos_individual.geojson"
 
 DISTRITOS_LIMA_CON_OSM_ID = {
     "Cercado de Lima": 1944756,
-    # Si en el futuro otro distrito da problemas, agregalo aqui:
     # "Otro Distrito": 1234567,
 }
 
