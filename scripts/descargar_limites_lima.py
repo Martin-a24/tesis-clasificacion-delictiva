@@ -4,6 +4,9 @@ descargar_limites_lima.py
 Descarga limites administrativos de Lima Metropolitana y Callao desde
 OpenStreetMap (Nominatim) y los guarda como GeoJSON con MultiPolygon valido.
 
+Para distritos problematicos (donde la busqueda por nombre devuelve resultados
+ambiguos como puntos en lugar de poligonos), se usa el ID OSM directo.
+
 Genera:
     data/raw/limites/lima_metropolitana.geojson         (union de todos)
     data/raw/limites/distritos_individual.geojson       (cada distrito por separado)
@@ -36,8 +39,21 @@ OUTPUT_PATH = OUTPUT_DIR / "lima_metropolitana.geojson"
 DISTRITOS_PATH = OUTPUT_DIR / "distritos_individual.geojson"
 
 
+# ============================================================
+# CONFIGURACION DE DISTRITOS
+# ============================================================
+# Para distritos donde la busqueda por nombre falla (devuelve punto u otro
+# tipo de geometria), se especifica el OSM Relation ID directamente.
+# Estos IDs se obtienen de https://www.openstreetmap.org/relation/<ID>
+
+DISTRITOS_LIMA_CON_OSM_ID = {
+    "Cercado de Lima": 1944756,
+    # Si en el futuro otro distrito da problemas, agregalo aqui:
+    # "Otro Distrito": 1234567,
+}
+
 DISTRITOS_LIMA = [
-    "Ancón", "Ate", "Barranco", "Breña", "Carabayllo", "Lima",
+    "Ancón", "Ate", "Barranco", "Breña", "Carabayllo", "Cercado de Lima",
     "Chaclacayo", "Chorrillos", "Cieneguilla", "Comas", "El Agustino",
     "Independencia", "Jesús María", "La Molina", "La Victoria", "Lince",
     "Los Olivos", "Lurigancho", "Lurín", "Magdalena del Mar", "Miraflores",
@@ -55,8 +71,49 @@ DISTRITOS_CALLAO = [
 ]
 
 
-def descargar_via_nominatim():
-    """Descarga distritos uno por uno via Nominatim."""
+# ============================================================
+# FUNCIONES DE DESCARGA
+# ============================================================
+
+def descargar_por_osm_id(osm_id):
+    """
+    Descarga la geometria de una relacion OSM usando su ID directo.
+    Es mas confiable que buscar por nombre cuando el nombre es ambiguo.
+    """
+    url = (f"https://nominatim.openstreetmap.org/lookup?"
+            f"osm_ids=R{osm_id}&format=json&polygon_geojson=1")
+    req = urllib.request.Request(url, headers={"User-Agent": "tesis-pucp/1.0"})
+
+    with urllib.request.urlopen(req, timeout=30) as response:
+        data = json.loads(response.read())
+
+    if data and "geojson" in data[0]:
+        geom = shape(data[0]["geojson"])
+        if geom.geom_type in ("Polygon", "MultiPolygon"):
+            return geom
+    return None
+
+
+def descargar_por_nombre(distrito, region):
+    """Descarga la geometria buscando por nombre via Nominatim."""
+    query = f"{distrito}, {region}, Peru"
+    url = ("https://nominatim.openstreetmap.org/search?q="
+            + urllib.parse.quote(query)
+            + "&format=json&polygon_geojson=1&limit=1")
+    req = urllib.request.Request(url, headers={"User-Agent": "tesis-pucp/1.0"})
+
+    with urllib.request.urlopen(req, timeout=30) as response:
+        data = json.loads(response.read())
+
+    if data and "geojson" in data[0]:
+        geom = shape(data[0]["geojson"])
+        if geom.geom_type in ("Polygon", "MultiPolygon"):
+            return geom
+    return None
+
+
+def descargar_distritos():
+    """Descarga todos los distritos via Nominatim."""
     print("Usando Nominatim...")
     geometrias = []
     nombres = []
@@ -67,33 +124,34 @@ def descargar_via_nominatim():
     print(f"  Descargando {len(todos)} distritos...")
 
     for i, (distrito, region) in enumerate(todos, 1):
-        query = f"{distrito}, {region}, Peru"
-        url = ("https://nominatim.openstreetmap.org/search?q="
-                + urllib.parse.quote(query)
-                + "&format=json&polygon_geojson=1&limit=1")
-
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "tesis-pucp/1.0"})
-            with urllib.request.urlopen(req, timeout=30) as response:
-                data = json.loads(response.read())
-
-            if data and "geojson" in data[0]:
-                geom = shape(data[0]["geojson"])
-                if geom.geom_type in ("Polygon", "MultiPolygon"):
-                    geometrias.append(geom)
-                    nombres.append(distrito)
-                    print(f"  [{i}/{len(todos)}] OK: {distrito}")
-                else:
-                    print(f"  [{i}/{len(todos)}] OMITIDO ({geom.geom_type}): {distrito}")
+            # Si el distrito tiene un OSM ID asignado, usarlo directamente
+            if distrito in DISTRITOS_LIMA_CON_OSM_ID:
+                osm_id = DISTRITOS_LIMA_CON_OSM_ID[distrito]
+                geom = descargar_por_osm_id(osm_id)
+                metodo = f"ID R{osm_id}"
             else:
-                print(f"  [{i}/{len(todos)}] FALLO: {distrito}")
+                geom = descargar_por_nombre(distrito, region)
+                metodo = "busqueda"
+
+            if geom is not None:
+                geometrias.append(geom)
+                nombres.append(distrito)
+                print(f"  [{i}/{len(todos)}] OK ({metodo}): {distrito}")
+            else:
+                print(f"  [{i}/{len(todos)}] FALLO ({metodo}): {distrito}")
+
         except Exception as e:
             print(f"  [{i}/{len(todos)}] ERROR: {distrito} - {e}")
 
-        time.sleep(1.1)  # rate limit
+        time.sleep(1.1)  # rate limit de Nominatim
 
     return geometrias, nombres
 
+
+# ============================================================
+# CONSTRUCCION DEL POLIGONO UNION
+# ============================================================
 
 def normalizar_a_multipolygon(geom):
     """Convierte cualquier geometria a MultiPolygon, filtrando lo no valido."""
@@ -127,7 +185,7 @@ def guardar_resultado(geometrias, nombres):
 
     print(f"\nUniendo {len(geometrias)} geometrias...")
 
-    # Aplicar buffer minimo para limpiar bordes y unir poligonos adyacentes
+    # Buffer minimo para limpiar bordes y unir poligonos adyacentes
     geometrias_buffered = [g.buffer(0.0001).buffer(-0.0001) for g in geometrias]
 
     union = unary_union(geometrias_buffered)
@@ -158,7 +216,7 @@ def guardar_resultado(geometrias, nombres):
     area_km2 = gdf_proj.area.iloc[0] / 1e6
     print(f"Area aproximada: {area_km2:.0f} km2")
 
-    # Guardar tambien distritos individuales
+    # Guardar distritos individuales
     gdf_distritos = gpd.GeoDataFrame(
         {"distrito": nombres},
         geometry=geometrias,
@@ -169,6 +227,10 @@ def guardar_resultado(geometrias, nombres):
 
     return True
 
+
+# ============================================================
+# MAIN
+# ============================================================
 
 if __name__ == "__main__":
     print("=" * 60)
@@ -182,13 +244,14 @@ if __name__ == "__main__":
             print("Cancelado.")
             sys.exit(0)
 
-    geometrias, nombres = descargar_via_nominatim()
+    geometrias, nombres = descargar_distritos()
 
     if geometrias:
         if guardar_resultado(geometrias, nombres):
             print("\n" + "=" * 60)
             print("  EXITO")
             print("=" * 60)
+            print(f"\n  Distritos descargados: {len(geometrias)}")
             print("\nProximos pasos:")
             print(f"  1. Abre en QGIS: {OUTPUT_PATH}")
             print(f"  2. Verifica que veas el contorno de Lima Metropolitana")
