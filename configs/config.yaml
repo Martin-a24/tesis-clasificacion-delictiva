@@ -17,6 +17,7 @@ paths:
     tiles: "data/processed/tiles"
 
   labels: "data/labels"
+  splits: "data/splits"
   models: "models"
   results: "results"
 
