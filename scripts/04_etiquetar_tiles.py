@@ -344,9 +344,12 @@ if __name__ == "__main__":
 
     print(f"\n  [5/5] Guardando resultados...")
 
-    cols_csv = ["tile_name", "source_image", "fecha", "row", "col",
+    cols_csv = ["tile_name", "cell_id", "source_image", "fecha", "row", "col",
                  "center_x", "center_y", "n_delitos", "poblacion",
                  "densidad", "nivel_riesgo"]
+    # Compatibilidad: si el metadata viene de una corrida antigua sin cell_id,
+    # no romper (se generara sin esa columna).
+    cols_csv = [c for c in cols_csv if c in tiles_reales.columns]
     csv_path = LABELS_DIR / "tiles_labeled.csv"
     tiles_reales[cols_csv].to_csv(csv_path, index=False)
     print(f"  CSV: {csv_path}")

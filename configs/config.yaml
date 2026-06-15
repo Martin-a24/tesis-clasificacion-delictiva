@@ -15,6 +15,7 @@ paths:
     delitos: "data/processed/delitos_limpios"
     pansharpened: "data/processed/imagenes_pansharpened"
     tiles: "data/processed/tiles"
+    mosaico: "data/processed/mosaico"
 
   labels: "data/labels"
   splits: "data/splits"
@@ -33,6 +34,7 @@ tiles:
   ndwi_band_nir: 4           # banda NIR (1-indexed)
   use_urban_filter: true
   min_urban_overlap: 0.5     # tile debe tener al menos 50% de su area dentro del poligono urbano
+  num_workers: 0             # procesos para teselado paralelo (0 = usar todos los CPU disponibles)
   use_cloud_filter: false    #Filtro de nubes
   cloud_brightness_threshold: 1100  # umbral de brillo para detectar nubes (en escala DN, ajustar segun imagenes)
   max_cloud_ratio: 0.8       # maximo de pixeles nubes para no descartar tile
@@ -40,6 +42,33 @@ tiles:
 pansharpening:
   resampling: "cubic"
   compress: "LZW"
+
+# ============================================================
+# MOSAICO VIRTUAL (Script 02b) - une todas las escenas pansharpened
+# en un solo VRT para que cada ubicacion fisica exista una sola vez,
+# evitando tiles duplicados en zonas de solape entre escenas.
+# ============================================================
+mosaico:
+  enabled: true
+  crs: "EPSG:32718"
+  src_nodata: 0
+  vrt_nodata: 0
+  # Orden de prioridad en zonas de solape: la ultima escena listada queda
+  # "arriba". "auto" ordena por % de pixeles validos ascendente (la escena
+  # con mas pixeles validos queda arriba en el solape).
+  prioridad: "auto"
+  output: "data/processed/mosaico/mosaico.vrt"
+
+# ============================================================
+# GRILLA GLOBAL FIJA (Script 03)
+# Ancla fija (esquina NO) en EPSG:32718. NO cambiar nunca: garantiza que
+# el cell_id de cada tile sea estable entre corridas y al agregar escenas.
+# ============================================================
+grilla_global:
+  origin_x: 240000.0
+  origin_y: 8740000.0
+  # paso en metros = tile_size_px * resolucion (512 * 0.7 = 358.4)
+  step_m: 358.4
 
 # ============================================================
 # DELITOS
@@ -80,6 +109,7 @@ splits:
   test_ratio: 0.15
   random_seed: 42
   stratify_by: "nivel_riesgo"  # estratifica para mantener proporcion de clases
+  group_by: "cell_id"          # split espacial: ningun cell_id se reparte entre train/val/test
  
 # ============================================================
 # ENTRENAMIENTO DEL MODELO (Script 06)

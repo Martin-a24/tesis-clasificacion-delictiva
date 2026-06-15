@@ -4,6 +4,7 @@ data/raw/*
 !data/raw/delitos/*.csv
 data/processed/
 data/labels/
+data/splits/
 models/*.pth
 models/*.pt
 models/*.h5
