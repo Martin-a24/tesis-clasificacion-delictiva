@@ -52,6 +52,8 @@ P_ALTO = CFG["etiquetado"]["percentil_alto"]
 NORMALIZAR = CFG["etiquetado"]["normalizar_poblacion"]
 WORLDPOP_PATH = PROJECT_ROOT / CFG["etiquetado"]["worldpop_path"]
 GRID_SIZE_M = CFG["etiquetado"].get("global_grid_tile_size_m", 358)
+METODO_DENSIDAD = CFG["etiquetado"].get("metodo_densidad", "conteo")
+RADIO_VECINDAD_M = CFG["etiquetado"].get("radio_vecindad_m", 500)
 
 LABELS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -82,13 +84,27 @@ def construir_grilla_virtual(poligono, tile_size_m, crs):
     return gpd.GeoDataFrame(tiles, crs=crs)
 
 
-def calcular_densidades(grilla, delitos_gdf, normalizar, worldpop_path):
-    """Calcula conteo y opcionalmente densidad normalizada."""
+def calcular_densidades(grilla, delitos_gdf, normalizar, worldpop_path,
+                         metodo_densidad="conteo", radio_m=500):
+    """Calcula conteo (o densidad por vecindad) y opcionalmente densidad normalizada.
+
+    metodo_densidad:
+      "conteo"   -> delitos cuyas coordenadas caen dentro del poligono del tile.
+      "vecindad" -> delitos dentro de un radio (radio_m) del centro del tile;
+                    los buffers se solapan a proposito (suaviza, reduce ceros).
+    """
     id_col = "virtual_id" if "virtual_id" in grilla.columns else "tile_name"
 
-    print("  Spatial join: delitos en tiles...")
-    join = gpd.sjoin(delitos_gdf, grilla[[id_col, "geometry"]],
-                      how="inner", predicate="within")
+    if metodo_densidad == "vecindad":
+        print(f"  Spatial join: delitos en vecindad (radio {radio_m} m del centro)...")
+        geom_join = grilla[[id_col]].copy()
+        geom_join["geometry"] = grilla.geometry.centroid.buffer(radio_m)
+        geom_join = gpd.GeoDataFrame(geom_join, geometry="geometry", crs=grilla.crs)
+    else:
+        print("  Spatial join: delitos dentro del tile...")
+        geom_join = grilla[[id_col, "geometry"]]
+
+    join = gpd.sjoin(delitos_gdf, geom_join, how="inner", predicate="within")
     conteos = join.groupby(id_col).size().reset_index(name="n_delitos")
     grilla = grilla.merge(conteos, on=id_col, how="left")
     grilla["n_delitos"] = grilla["n_delitos"].fillna(0).astype(int)
@@ -187,6 +203,10 @@ def generar_reporte(tiles, grilla_virtual, umbral_medio, umbral_alto,
     lines.append(f"Referencia: {referencia}")
     lines.append("")
     lines.append("METODOLOGIA: Umbrales globales sobre grilla virtual de Lima")
+    if METODO_DENSIDAD == "vecindad":
+        lines.append(f"  Medida por tile: delitos en vecindad (radio {RADIO_VECINDAD_M} m del centro)")
+    else:
+        lines.append(f"  Medida por tile: conteo de delitos dentro del tile")
     lines.append(f"  Grilla virtual total: {len(grilla_virtual)} tiles")
     lines.append(f"  Tiles virtuales con delitos: {(grilla_virtual['n_delitos'] > 0).sum()}")
     lines.append(f"  Tiles virtuales sin delitos: {(grilla_virtual['n_delitos'] == 0).sum()}")
@@ -327,7 +347,8 @@ if __name__ == "__main__":
     poligono_urbano = gdf_limites.geometry.union_all()
 
     grilla_virtual = construir_grilla_virtual(poligono_urbano, GRID_SIZE_M, tiles_reales.crs)
-    grilla_virtual = calcular_densidades(grilla_virtual, delitos, NORMALIZAR, WORLDPOP_PATH)
+    grilla_virtual = calcular_densidades(grilla_virtual, delitos, NORMALIZAR, WORLDPOP_PATH,
+                                         METODO_DENSIDAD, RADIO_VECINDAD_M)
     umbral_medio, umbral_alto = calcular_umbrales(grilla_virtual, P_BAJO, P_ALTO)
 
     print(f"\n  Umbrales calculados:")
@@ -339,7 +360,8 @@ if __name__ == "__main__":
         print(f"    Percentil {P_ALTO}: {umbral_alto:.2f} delitos")
 
     print(f"\n  [4/5] Etiquetando tiles reales...")
-    tiles_reales = calcular_densidades(tiles_reales, delitos, NORMALIZAR, WORLDPOP_PATH)
+    tiles_reales = calcular_densidades(tiles_reales, delitos, NORMALIZAR, WORLDPOP_PATH,
+                                       METODO_DENSIDAD, RADIO_VECINDAD_M)
     tiles_reales = aplicar_umbrales(tiles_reales, umbral_medio, umbral_alto, NIVELES)
 
     print(f"\n  [5/5] Guardando resultados...")
@@ -368,6 +390,8 @@ if __name__ == "__main__":
             "percentil_alto": P_ALTO,
             "umbral_medio": umbral_medio,
             "umbral_alto": umbral_alto,
+            "metodo_densidad": METODO_DENSIDAD,
+            "radio_vecindad_m": RADIO_VECINDAD_M if METODO_DENSIDAD == "vecindad" else None,
             "normalizar_poblacion": NORMALIZAR,
             "n_tiles_virtuales": len(grilla_virtual),
             "n_tiles_virtuales_con_delitos": int((grilla_virtual["n_delitos"] > 0).sum()),

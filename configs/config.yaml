@@ -99,6 +99,12 @@ etiquetado:
   worldpop_path: "data/raw/worldpop/per_ppp_2020.tif"  # opcional
   use_global_thresholds: true
   global_grid_tile_size_m: 358  # ~512 px a 0.7 m/px
+  # Metodo para medir actividad delictiva por tile (R3.1 experimental):
+  #   "conteo"   = delitos cuyas coordenadas caen DENTRO del tile (metodo R3 validado)
+  #   "vecindad" = delitos dentro de un radio del centro del tile (suaviza, reduce ceros)
+  # Mantiene 3 niveles, grilla global, umbrales P33/P67 y tiles sin delito -> bajo.
+  metodo_densidad: "vecindad"
+  radio_vecindad_m: 500
 
 # ============================================================
 # SPLITS DEL DATASET (Script 05)
@@ -128,7 +134,7 @@ modelo:
   num_classes: 3
  
 entrenamiento:
-  batch_size: 16
+  batch_size: 32     # servidor 2x A6000; dataset chico, no subir mas (batch grande = peor generalizacion)
   num_epochs: 50
   learning_rate: 0.0001
   weight_decay: 0.0001
@@ -155,7 +161,7 @@ entrenamiento:
  
   # Hardware
   device: "cuda"  # cuda o cpu
-  num_workers: 4
+  num_workers: 8   # servidor Threadripper 32 hilos (deja headroom; con cache en RAM bastaria menos)
   pin_memory: true
  
 # ============================================================
