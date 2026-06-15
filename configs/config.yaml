@@ -104,7 +104,7 @@ etiquetado:
   #   "vecindad" = delitos dentro de un radio del centro del tile (kernel uniforme)
   #   "kde"      = intensidad por KDE gaussiano evaluada en el centro del tile (estandar)
   # Mantiene 3 niveles, grilla global, umbrales P33/P67 y tiles sin delito -> bajo.
-  metodo_densidad: "kde"
+  metodo_densidad: "conteo"   # validado; con cobertura central, suavizar + umbral global degenera (todo "alto")
   radio_vecindad_m: 500    # solo para metodo "vecindad": radio de busqueda en metros
   kde_bandwidth_m: 400     # solo para metodo "kde": ancho de banda (sigma) del kernel, en metros
 
