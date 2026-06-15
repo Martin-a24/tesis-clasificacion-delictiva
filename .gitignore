@@ -1,7 +1,29 @@
-# Datos pesados (no se versionan)
+# Datos pesados (no se versionan), pero se conserva la estructura de carpetas
+# de insumos via .gitkeep para saber donde colocar cada cosa al clonar.
 data/raw/*
 !data/raw/delitos/
 !data/raw/delitos/*.csv
+
+# imagenes PeruSAT-1 (colocar manualmente; ver README)
+!data/raw/imagenes_perusat/
+data/raw/imagenes_perusat/*
+!data/raw/imagenes_perusat/ESPECTRAL/
+data/raw/imagenes_perusat/ESPECTRAL/*
+!data/raw/imagenes_perusat/ESPECTRAL/.gitkeep
+!data/raw/imagenes_perusat/PANCROMATICA/
+data/raw/imagenes_perusat/PANCROMATICA/*
+!data/raw/imagenes_perusat/PANCROMATICA/.gitkeep
+
+# limites de Lima (se generan con descargar_limites_lima.py)
+!data/raw/limites/
+data/raw/limites/*
+!data/raw/limites/.gitkeep
+
+# worldpop (opcional, colocar manualmente; ver README)
+!data/raw/worldpop/
+data/raw/worldpop/*
+!data/raw/worldpop/.gitkeep
+
 data/processed/
 data/labels/
 data/splits/
