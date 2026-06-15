@@ -30,6 +30,11 @@ except ImportError:
     print("conda activate tesis")
     sys.exit(1)
 
+try:
+    from sklearn.neighbors import KernelDensity
+except ImportError:
+    KernelDensity = None
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -54,6 +59,7 @@ WORLDPOP_PATH = PROJECT_ROOT / CFG["etiquetado"]["worldpop_path"]
 GRID_SIZE_M = CFG["etiquetado"].get("global_grid_tile_size_m", 358)
 METODO_DENSIDAD = CFG["etiquetado"].get("metodo_densidad", "conteo")
 RADIO_VECINDAD_M = CFG["etiquetado"].get("radio_vecindad_m", 500)
+KDE_BANDWIDTH_M = CFG["etiquetado"].get("kde_bandwidth_m", 400)
 
 LABELS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -84,33 +90,60 @@ def construir_grilla_virtual(poligono, tile_size_m, crs):
     return gpd.GeoDataFrame(tiles, crs=crs)
 
 
-def calcular_densidades(grilla, delitos_gdf, normalizar, worldpop_path,
-                         metodo_densidad="conteo", radio_m=500):
-    """Calcula conteo (o densidad por vecindad) y opcionalmente densidad normalizada.
+def _kde_intensidad(grilla, delitos_gdf, bandwidth_m):
+    """Intensidad delictiva por KDE gaussiano evaluada en el centro de cada tile.
 
-    metodo_densidad:
-      "conteo"   -> delitos cuyas coordenadas caen dentro del poligono del tile.
-      "vecindad" -> delitos dentro de un radio (radio_m) del centro del tile;
-                    los buffers se solapan a proposito (suaviza, reduce ceros).
+    Devuelve un valor proporcional al numero esperado de delitos atribuible a la
+    ubicacion del tile bajo la superficie suavizada (escala ~ delitos por tile).
+    """
+    if KernelDensity is None:
+        print("  ERROR: scikit-learn no instalado (necesario para metodo 'kde').")
+        sys.exit(1)
+    xy = np.column_stack([delitos_gdf.geometry.x.values, delitos_gdf.geometry.y.values])
+    kde = KernelDensity(kernel="gaussian", bandwidth=float(bandwidth_m)).fit(xy)
+    cent = grilla.geometry.centroid
+    g = np.column_stack([cent.x.values, cent.y.values])
+    log_dens = kde.score_samples(g)               # log densidad (por m^2, integra a 1)
+    n = len(delitos_gdf)
+    area = float(GRID_SIZE_M) ** 2                 # constante -> no altera la clasificacion
+    return n * np.exp(log_dens) * area
+
+
+def calcular_densidades(grilla, delitos_gdf, normalizar, worldpop_path,
+                         metodo_densidad="conteo", radio_m=500, kde_bandwidth_m=400):
+    """Calcula la medida de actividad delictiva por tile usada para clasificar.
+
+    n_delitos -> SIEMPRE el conteo literal de delitos dentro del tile (para reporte).
+    densidad  -> medida usada para los umbrales, segun metodo_densidad:
+      "conteo"   -> = n_delitos (delitos dentro del tile).
+      "vecindad" -> delitos dentro de un radio (radio_m) del centro (kernel uniforme).
+      "kde"      -> intensidad por KDE gaussiano (bandwidth) evaluada en el centro.
     """
     id_col = "virtual_id" if "virtual_id" in grilla.columns else "tile_name"
 
-    if metodo_densidad == "vecindad":
-        print(f"  Spatial join: delitos en vecindad (radio {radio_m} m del centro)...")
-        geom_join = grilla[[id_col]].copy()
-        geom_join["geometry"] = grilla.geometry.centroid.buffer(radio_m)
-        geom_join = gpd.GeoDataFrame(geom_join, geometry="geometry", crs=grilla.crs)
-    else:
-        print("  Spatial join: delitos dentro del tile...")
-        geom_join = grilla[[id_col, "geometry"]]
-
-    join = gpd.sjoin(delitos_gdf, geom_join, how="inner", predicate="within")
+    # 1) Conteo literal de delitos DENTRO del tile (siempre, para reporte/interpretacion)
+    join = gpd.sjoin(delitos_gdf, grilla[[id_col, "geometry"]],
+                     how="inner", predicate="within")
     conteos = join.groupby(id_col).size().reset_index(name="n_delitos")
     grilla = grilla.merge(conteos, on=id_col, how="left")
     grilla["n_delitos"] = grilla["n_delitos"].fillna(0).astype(int)
+    print(f"  Tiles con al menos 1 delito (dentro del tile): "
+          f"{(grilla['n_delitos'] > 0).sum()} de {len(grilla)}")
 
-    n_con_delitos = (grilla["n_delitos"] > 0).sum()
-    print(f"  Tiles con al menos 1 delito: {n_con_delitos} de {len(grilla)}")
+    # 2) Medida de actividad para CLASIFICAR (segun metodo)
+    if metodo_densidad == "vecindad":
+        print(f"  Medida: delitos en vecindad (radio {radio_m} m del centro)...")
+        buff = grilla.geometry.centroid.buffer(radio_m)
+        gj = gpd.GeoDataFrame(grilla[[id_col]].copy(), geometry=buff, crs=grilla.crs)
+        jv = gpd.sjoin(delitos_gdf, gj, how="inner", predicate="within")
+        med = jv.groupby(id_col).size().reset_index(name="medida")
+        grilla = grilla.merge(med, on=id_col, how="left")
+        grilla["medida"] = grilla["medida"].fillna(0).astype(float)
+    elif metodo_densidad == "kde":
+        print(f"  Medida: KDE gaussiano (bandwidth {kde_bandwidth_m} m)...")
+        grilla["medida"] = _kde_intensidad(grilla, delitos_gdf, kde_bandwidth_m)
+    else:  # conteo
+        grilla["medida"] = grilla["n_delitos"].astype(float)
 
     if normalizar and worldpop_path.exists():
         print(f"  Calculando poblacion (WorldPop)...")
@@ -134,8 +167,7 @@ def calcular_densidades(grilla, delitos_gdf, normalizar, worldpop_path,
         print(f"  Metodo: densidad normalizada (delitos/mil hab)")
     else:
         grilla["poblacion"] = np.nan
-        grilla["densidad"] = grilla["n_delitos"].astype(float)
-        print(f"  Metodo: conteo bruto de delitos")
+        grilla["densidad"] = grilla["medida"].astype(float)
 
     return grilla
 
@@ -205,6 +237,8 @@ def generar_reporte(tiles, grilla_virtual, umbral_medio, umbral_alto,
     lines.append("METODOLOGIA: Umbrales globales sobre grilla virtual de Lima")
     if METODO_DENSIDAD == "vecindad":
         lines.append(f"  Medida por tile: delitos en vecindad (radio {RADIO_VECINDAD_M} m del centro)")
+    elif METODO_DENSIDAD == "kde":
+        lines.append(f"  Medida por tile: intensidad KDE gaussiano (bandwidth {KDE_BANDWIDTH_M} m)")
     else:
         lines.append(f"  Medida por tile: conteo de delitos dentro del tile")
     lines.append(f"  Grilla virtual total: {len(grilla_virtual)} tiles")
@@ -348,7 +382,7 @@ if __name__ == "__main__":
 
     grilla_virtual = construir_grilla_virtual(poligono_urbano, GRID_SIZE_M, tiles_reales.crs)
     grilla_virtual = calcular_densidades(grilla_virtual, delitos, NORMALIZAR, WORLDPOP_PATH,
-                                         METODO_DENSIDAD, RADIO_VECINDAD_M)
+                                         METODO_DENSIDAD, RADIO_VECINDAD_M, KDE_BANDWIDTH_M)
     umbral_medio, umbral_alto = calcular_umbrales(grilla_virtual, P_BAJO, P_ALTO)
 
     print(f"\n  Umbrales calculados:")
@@ -361,7 +395,7 @@ if __name__ == "__main__":
 
     print(f"\n  [4/5] Etiquetando tiles reales...")
     tiles_reales = calcular_densidades(tiles_reales, delitos, NORMALIZAR, WORLDPOP_PATH,
-                                       METODO_DENSIDAD, RADIO_VECINDAD_M)
+                                       METODO_DENSIDAD, RADIO_VECINDAD_M, KDE_BANDWIDTH_M)
     tiles_reales = aplicar_umbrales(tiles_reales, umbral_medio, umbral_alto, NIVELES)
 
     print(f"\n  [5/5] Guardando resultados...")
@@ -392,6 +426,7 @@ if __name__ == "__main__":
             "umbral_alto": umbral_alto,
             "metodo_densidad": METODO_DENSIDAD,
             "radio_vecindad_m": RADIO_VECINDAD_M if METODO_DENSIDAD == "vecindad" else None,
+            "kde_bandwidth_m": KDE_BANDWIDTH_M if METODO_DENSIDAD == "kde" else None,
             "normalizar_poblacion": NORMALIZAR,
             "n_tiles_virtuales": len(grilla_virtual),
             "n_tiles_virtuales_con_delitos": int((grilla_virtual["n_delitos"] > 0).sum()),

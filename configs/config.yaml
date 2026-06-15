@@ -101,10 +101,12 @@ etiquetado:
   global_grid_tile_size_m: 358  # ~512 px a 0.7 m/px
   # Metodo para medir actividad delictiva por tile (R3.1 experimental):
   #   "conteo"   = delitos cuyas coordenadas caen DENTRO del tile (metodo R3 validado)
-  #   "vecindad" = delitos dentro de un radio del centro del tile (suaviza, reduce ceros)
+  #   "vecindad" = delitos dentro de un radio del centro del tile (kernel uniforme)
+  #   "kde"      = intensidad por KDE gaussiano evaluada en el centro del tile (estandar)
   # Mantiene 3 niveles, grilla global, umbrales P33/P67 y tiles sin delito -> bajo.
-  metodo_densidad: "vecindad"
-  radio_vecindad_m: 500
+  metodo_densidad: "kde"
+  radio_vecindad_m: 500    # solo para metodo "vecindad": radio de busqueda en metros
+  kde_bandwidth_m: 400     # solo para metodo "kde": ancho de banda (sigma) del kernel, en metros
 
 # ============================================================
 # SPLITS DEL DATASET (Script 05)
