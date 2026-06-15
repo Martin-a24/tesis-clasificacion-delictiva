@@ -95,3 +95,25 @@ insumos en `data/raw/` asi:
 Las demas carpetas (`data/processed/`, `data/labels/`, `data/splits/`, `models/`,
 `results/`) se crean automaticamente al ejecutar los scripts.
 
+## Sincronizacion con el servidor
+
+El codigo se edita en la PC local y se ejecuta en un servidor mas potente. Para
+mover datos pesados se usa `rsync` sobre SSH (con `ProxyJump` para saltar el
+servidor puente). Configurar una sola vez los alias `bridge` y `phantom` en
+`~/.ssh/config` y copiar la llave: `ssh-copy-id bridge && ssh-copy-id phantom`.
+
+Helper: `scripts/sync.sh` (no contiene credenciales; usa el alias `phantom`).
+
+```bash
+./scripts/sync.sh push-imagenes      # PC -> servidor: data/raw/imagenes_perusat
+./scripts/sync.sh pull-resultados    # servidor -> PC: results/
+./scripts/sync.sh pull-entregables   # servidor -> ~/tesis-entregables (QGIS y tesis)
+./scripts/sync.sh push <ruta>        # subir cualquier ruta del repo
+./scripts/sync.sh pull <ruta>        # bajar cualquier ruta del repo
+```
+
+`pull-entregables` baja un paquete liviano (labels, results y el geojson de
+delitos) a `~/tesis-entregables` para abrir en QGIS y usar en la tesis, sin
+traer los tiles ni el pansharpening. Agregar `--dry-run` previsualiza sin copiar;
+`DEST=<carpeta>` o un argumento de ruta cambia el destino local.
+
