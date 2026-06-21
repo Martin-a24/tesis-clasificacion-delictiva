@@ -79,8 +79,10 @@ ARCHITECTURE = CFG["modelo"]["architecture"]
 PRETRAINED = CFG["modelo"]["pretrained"]
 IN_CHANNELS = CFG["modelo"]["in_channels"]
 NUM_CLASSES = CFG["modelo"]["num_classes"]
+DROPOUT = CFG["modelo"].get("dropout", 0.0)
 
 BATCH_SIZE = CFG["entrenamiento"]["batch_size"]
+LABEL_SMOOTHING = CFG["entrenamiento"].get("label_smoothing", 0.0)
 NUM_EPOCHS = CFG["entrenamiento"]["num_epochs"]
 LEARNING_RATE = CFG["entrenamiento"]["learning_rate"]
 WEIGHT_DECAY = CFG["entrenamiento"]["weight_decay"]
@@ -163,16 +165,24 @@ class TilesDataset(Dataset):
         return image, label
 
 
+def _rot90_aleatorio(img):
+    """Rota la imagen 0/90/180/270 grados al azar (sin interpolacion ni esquinas
+    negras). Natural para imagenes aereas, que no tienen 'arriba/abajo'."""
+    k = int(torch.randint(0, 4, (1,)).item())
+    return torch.rot90(img, k, dims=[-2, -1])
+
+
 def construir_transformaciones(use_augmentation):
     """
     Construye las transformaciones de data augmentation.
     Solo se aplican en train; val y test sin augmentation.
+    Para imagenes satelitales se usa el grupo dihedral (flips + rotaciones de 90).
     """
     if use_augmentation:
         train_transform = transforms.Compose([
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),
-            transforms.RandomRotation(degrees=15),
+            transforms.Lambda(_rot90_aleatorio),
         ])
     else:
         train_transform = None
@@ -186,35 +196,42 @@ def construir_transformaciones(use_augmentation):
 # CONSTRUCCION DE MODELOS
 # ============================================================
 
-def construir_modelo(arquitectura, num_classes, in_channels, pretrained):
+def _cabeza(in_features, num_classes, dropout):
+    """Capa final de clasificacion, con dropout opcional antes del Linear."""
+    if dropout and dropout > 0:
+        return nn.Sequential(nn.Dropout(p=dropout), nn.Linear(in_features, num_classes))
+    return nn.Linear(in_features, num_classes)
+
+
+def construir_modelo(arquitectura, num_classes, in_channels, pretrained, dropout=0.0):
     """
     Construye el modelo CNN segun la arquitectura especificada.
     Adapta la primera capa convolucional para soportar 4 bandas
-    en lugar de 3 (RGB).
+    en lugar de 3 (RGB). Agrega dropout antes de la capa final si dropout > 0.
     """
     if arquitectura == "resnet18":
         weights = models.ResNet18_Weights.DEFAULT if pretrained else None
         model = models.resnet18(weights=weights)
         model = adaptar_primera_capa_resnet(model, in_channels)
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
+        model.fc = _cabeza(model.fc.in_features, num_classes, dropout)
 
     elif arquitectura == "resnet50":
         weights = models.ResNet50_Weights.DEFAULT if pretrained else None
         model = models.resnet50(weights=weights)
         model = adaptar_primera_capa_resnet(model, in_channels)
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
+        model.fc = _cabeza(model.fc.in_features, num_classes, dropout)
 
     elif arquitectura == "efficientnet_b0":
         weights = models.EfficientNet_B0_Weights.DEFAULT if pretrained else None
         model = models.efficientnet_b0(weights=weights)
         model = adaptar_primera_capa_efficientnet(model, in_channels)
-        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+        model.classifier[1] = _cabeza(model.classifier[1].in_features, num_classes, dropout)
 
     elif arquitectura == "vit_b_16":
         weights = models.ViT_B_16_Weights.DEFAULT if pretrained else None
         model = models.vit_b_16(weights=weights)
         model = adaptar_primera_capa_vit(model, in_channels)
-        model.heads.head = nn.Linear(model.heads.head.in_features, num_classes)
+        model.heads.head = _cabeza(model.heads.head.in_features, num_classes, dropout)
 
     else:
         raise ValueError(f"Arquitectura no soportada: {arquitectura}. "
@@ -499,7 +516,7 @@ if __name__ == "__main__":
 
     # Construir modelo
     print(f"\n  [3/6] Construyendo modelo {ARCHITECTURE}...")
-    model = construir_modelo(ARCHITECTURE, NUM_CLASSES, IN_CHANNELS, PRETRAINED)
+    model = construir_modelo(ARCHITECTURE, NUM_CLASSES, IN_CHANNELS, PRETRAINED, DROPOUT)
     model = model.to(device)
 
     n_params = sum(p.numel() for p in model.parameters())
@@ -519,14 +536,18 @@ if __name__ == "__main__":
         criterion = FocalLoss(alpha=class_weights, gamma=2.0)
         print(f"  Funcion de perdida: Focal Loss")
     else:
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
+        criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=LABEL_SMOOTHING)
         print(f"  Funcion de perdida: CrossEntropyLoss" +
-               (" (ponderada)" if USE_CLASS_WEIGHTS else ""))
+               (" (ponderada)" if USE_CLASS_WEIGHTS else "") +
+               (f", label_smoothing={LABEL_SMOOTHING}" if LABEL_SMOOTHING else ""))
 
     # Configurar optimizador
     if OPTIMIZER == "adam":
         optimizer = optim.Adam(model.parameters(),
                                  lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    elif OPTIMIZER == "adamw":
+        optimizer = optim.AdamW(model.parameters(),
+                                  lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     elif OPTIMIZER == "sgd":
         optimizer = optim.SGD(model.parameters(),
                                 lr=LEARNING_RATE, momentum=0.9, weight_decay=WEIGHT_DECAY)

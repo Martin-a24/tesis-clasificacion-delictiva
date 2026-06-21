@@ -126,13 +126,17 @@ modelo:
  
   # Numero de clases (alto, medio, bajo)
   num_classes: 3
- 
+
+  # Dropout antes de la capa final (regularizacion; 0.0 = sin dropout)
+  dropout: 0.2
+
 entrenamiento:
   batch_size: 32     # servidor 2x A6000; dataset chico, no subir mas (batch grande = peor generalizacion)
   num_epochs: 50
   learning_rate: 0.0001
-  weight_decay: 0.0001
-  optimizer: "adam"  # adam o sgd
+  weight_decay: 0.0005       # mas regularizacion para dataset pequeno
+  optimizer: "adamw"  # adam | adamw | sgd  (adamw recomendado con weight decay)
+  label_smoothing: 0.1       # suaviza etiquetas (utiles cuando el ground truth es ruidoso)
  
   # Scheduler de learning rate
   use_scheduler: true
