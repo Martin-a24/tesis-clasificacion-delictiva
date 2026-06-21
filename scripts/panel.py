@@ -108,6 +108,10 @@ def pipeline(cfg):
          "out": ["results/gradcam/gradcam_resumen.csv"],
          "needs": ["models/*_best.pth", "data/splits/test.csv"],
          "needs_desc": "modelo entrenado (paso 6) + split test (Objetivo 3 / R6)"},
+        {"id": "10", "label": "Zonificacion QGIS", "script": "10_zonificacion.py",
+         "out": ["results/zonificacion/coincidencia_reporte.txt"],
+         "needs": ["models/*_best.pth", "data/labels/tiles_labeled.geojson"],
+         "needs_desc": "modelo entrenado (paso 6) + etiquetado (paso 4) (Objetivo 3 / R8)"},
     ]
 
 

@@ -84,6 +84,13 @@ input necesita cada paso y como agregar datos (imagenes, delitos).
 7. **06_entrenar_modelo.py** - Entrena la CNN (ResNet/EfficientNet/ViT).
 8. **07_evaluar_modelo.py** - Evalua metricas sobre el test.
 9. **08_comparar_arquitecturas.py** - Compara varias arquitecturas.
+10. **09_gradcam.py** - (Objetivo 3 / R6) Mapas Grad-CAM de interpretabilidad por
+    categoria de riesgo sobre el test.
+11. **10_zonificacion.py** - (Objetivo 3 / R8) Zonificacion de riesgo (predicciones
+    a geojson para QGIS) y coincidencia espacial con los delitos del MININTER.
+
+Para el analisis de coherencia con la criminologia ambiental (R7) ver la
+plantilla `docs/R7_tabla_correspondencias.md`.
 
 Scripts auxiliares:
 - **descargar_limites_lima.py** - Descarga/genera los limites de Lima en
