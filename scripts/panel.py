@@ -104,6 +104,10 @@ def pipeline(cfg):
          "out": ["results/comparisons/comparison_*.csv"],
          "needs": ["data/splits/train.csv"],
          "needs_desc": "splits (paso 5); entrena varias arquitecturas"},
+        {"id": "9", "label": "Grad-CAM (interpretab.)", "script": "09_gradcam.py",
+         "out": ["results/gradcam/gradcam_resumen.csv"],
+         "needs": ["models/*_best.pth", "data/splits/test.csv"],
+         "needs_desc": "modelo entrenado (paso 6) + split test (Objetivo 3 / R6)"},
     ]
 
 
