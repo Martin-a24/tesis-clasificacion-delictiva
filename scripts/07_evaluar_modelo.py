@@ -365,8 +365,21 @@ if __name__ == "__main__":
         sys.exit(1)
 
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
-    model = construir_modelo(ARCHITECTURE, NUM_CLASSES, IN_CHANNELS, pretrained=False)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    # El modelo pudo entrenarse con dropout en la cabeza (fc.1.* en vez de fc.*).
+    # Probamos el dropout del config y, si no calza, otras opciones, para que el
+    # state_dict cargue siempre.
+    dropout_cfg = CFG["modelo"].get("dropout", 0.0)
+    ultimo_err = None
+    for d in [dropout_cfg, 0.0, 0.2, 0.5]:
+        model = construir_modelo(ARCHITECTURE, NUM_CLASSES, IN_CHANNELS,
+                                 pretrained=False, dropout=d)
+        try:
+            model.load_state_dict(checkpoint["model_state_dict"], strict=True)
+            break
+        except RuntimeError as e:
+            ultimo_err = e
+    else:
+        raise RuntimeError(f"No se pudo cargar el modelo: {ultimo_err}")
     model = model.to(device)
     print(f"  Modelo cargado desde epoca {checkpoint['epoch']}")
     print(f"  F1 (val) en mejor epoca: {checkpoint['val_f1']:.4f}")
