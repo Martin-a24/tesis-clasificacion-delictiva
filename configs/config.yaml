@@ -128,7 +128,7 @@ modelo:
   num_classes: 3
  
 entrenamiento:
-  batch_size: 16
+  batch_size: 32     # servidor 2x A6000; dataset chico, no subir mas (batch grande = peor generalizacion)
   num_epochs: 50
   learning_rate: 0.0001
   weight_decay: 0.0001
@@ -155,7 +155,7 @@ entrenamiento:
  
   # Hardware
   device: "cuda"  # cuda o cpu
-  num_workers: 4
+  num_workers: 8   # servidor Threadripper 32 hilos (deja headroom)
   pin_memory: true
  
 # ============================================================
