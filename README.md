@@ -52,6 +52,19 @@ conda env create -f environment.yml
 conda activate tesis
 ```
 
+## Panel de control
+
+Forma rapida de operar el proyecto desde la terminal (sin dependencias extra):
+
+```bash
+python scripts/panel.py          # menu interactivo
+python scripts/panel.py status   # estado del pipeline (que paso esta hecho / que falta)
+```
+
+Permite ver el estado de cada paso, correr cualquier paso (o todo), cambiar
+parametros comunes y dejarlos como default en `config.yaml`, y consultar que
+input necesita cada paso y como agregar datos (imagenes, delitos).
+
 ## Pipeline
 
 1. **01_limpiar_datos_delictivos.py** - Consolida CSVs del MININTER en un
