@@ -108,7 +108,37 @@ insumos en `data/raw/` asi:
 Las demas carpetas (`data/processed/`, `data/labels/`, `data/splits/`, `models/`,
 `results/`) se crean automaticamente al ejecutar los scripts.
 
-## Sincronizacion con el servidor
+## Reproducir el proyecto desde cero (replicabilidad)
+
+El proyecto esta disenado para que cualquier persona lo reproduzca o lo extienda
+(p. ej. con mas imagenes o mas anios de datos en el futuro), no solo el autor.
+Todo el comportamiento se controla por `configs/config.yaml`; ningun parametro
+esta "hardcodeado" en el codigo. Pasos para un usuario nuevo:
+
+```bash
+# 1. Clonar y crear el entorno
+git clone https://github.com/Martin-a24/tesis-clasificacion-delictiva
+cd tesis-clasificacion-delictiva
+conda env create -f environment.yml && conda activate tesis
+
+# 2. Colocar los insumos en data/raw/ (ver tabla "Datos" arriba):
+#    - imagenes PeruSAT-1 propias en imagenes_perusat/{ESPECTRAL,PANCROMATICA}/
+#    - limites de Lima:  python scripts/descargar_limites_lima.py
+#    - delitos: ya vienen de ejemplo; reemplazables por otros CSV del MININTER
+
+# 3. Operar todo desde el panel de control
+python scripts/panel.py            # estado, correr pasos, configurar, ver inputs
+```
+
+Para adaptarlo a OTRA ciudad o periodo: cambia las imagenes y los CSV de delitos,
+ajusta `delitos.bbox_lima` y `paths.raw.limites_urbanos` en el config, y vuelve a
+correr el pipeline. La grilla global (`grilla_global`) y los umbrales globales se
+recalculan de forma consistente.
+
+## Sincronizacion con el servidor (opcional)
+
+> Solo aplica si editas el codigo en una maquina y lo ejecutas en otra (un
+> servidor). Si trabajas todo en una sola maquina, puedes ignorar esta seccion.
 
 El codigo se edita en la PC local y se ejecuta en un servidor mas potente. Para
 mover datos pesados se usa `rsync` sobre SSH (con `ProxyJump` para saltar el
