@@ -1,0 +1,13 @@
+{
+  "fecha": "2026-06-21T18:57:12.634459",
+  "metodo": "conteo_bruto",
+  "referencia": "Almanie et al. (2018)",
+  "percentil_bajo": 33,
+  "percentil_alto": 67,
+  "umbral_medio": 1.0,
+  "umbral_alto": 4.0,
+  "normalizar_poblacion": false,
+  "n_tiles_virtuales": 22194,
+  "n_tiles_virtuales_con_delitos": 3305,
+  "n_tiles_reales": 2603
+}

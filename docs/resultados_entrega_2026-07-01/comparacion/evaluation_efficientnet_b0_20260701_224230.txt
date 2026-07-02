@@ -1,0 +1,37 @@
+============================================================
+  REPORTE DE EVALUACION DEL MODELO
+  Fecha: 2026-07-01 22:42:32
+  Arquitectura: efficientnet_b0
+  Tiles en test: 372
+============================================================
+
+METRICAS GLOBALES DEL MODELO:
+  Accuracy:    0.7527
+  F1 macro:    0.6908
+  F1 weighted: 0.7711
+
+METRICAS POR CLASE:
+  Clase       Precision     Recall         F1    Support
+  ---------- ---------- ---------- ---------- ----------
+  bajo           0.9596     0.7917     0.8676        240
+  medio          0.4480     0.7368     0.5572         76
+  alto           0.6939     0.6071     0.6476         56
+
+MATRIZ DE CONFUSION (filas=real, columnas=prediccion):
+                bajo    medio     alto
+  bajo           190       47        3
+  medio            8       56       12
+  alto             0       22       34
+
+COMPARACION CON BASELINES:
+
+  Metrica             Modelo  Aleatorio  Mayoritario
+  --------------- ---------- ---------- ------------
+  Accuracy            0.7527     0.3333       0.6452
+  F1 macro            0.6908     0.2957       0.2614
+  F1 weighted         0.7711     0.3702       0.5060
+
+  Baseline mayoritario predice siempre: 'bajo'
+
+  Mejora F1 macro sobre baseline aleatorio:    +39.5 puntos
+  Mejora F1 macro sobre baseline mayoritario:  +42.9 puntos

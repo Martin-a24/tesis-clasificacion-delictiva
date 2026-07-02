@@ -1,0 +1,37 @@
+============================================================
+  REPORTE DE EVALUACION DEL MODELO
+  Fecha: 2026-07-01 22:38:13
+  Arquitectura: resnet50
+  Tiles en test: 372
+============================================================
+
+METRICAS GLOBALES DEL MODELO:
+  Accuracy:    0.7634
+  F1 macro:    0.7033
+  F1 weighted: 0.7728
+
+METRICAS POR CLASE:
+  Clase       Precision     Recall         F1    Support
+  ---------- ---------- ---------- ---------- ----------
+  bajo           0.9000     0.8250     0.8609        240
+  medio          0.4800     0.6316     0.5455         76
+  alto           0.7308     0.6786     0.7037         56
+
+MATRIZ DE CONFUSION (filas=real, columnas=prediccion):
+                bajo    medio     alto
+  bajo           198       39        3
+  medio           17       48       11
+  alto             5       13       38
+
+COMPARACION CON BASELINES:
+
+  Metrica             Modelo  Aleatorio  Mayoritario
+  --------------- ---------- ---------- ------------
+  Accuracy            0.7634     0.3333       0.6452
+  F1 macro            0.7033     0.2957       0.2614
+  F1 weighted         0.7728     0.3702       0.5060
+
+  Baseline mayoritario predice siempre: 'bajo'
+
+  Mejora F1 macro sobre baseline aleatorio:    +40.8 puntos
+  Mejora F1 macro sobre baseline mayoritario:  +44.2 puntos

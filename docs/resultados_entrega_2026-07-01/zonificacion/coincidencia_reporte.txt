@@ -1,0 +1,15 @@
+============================================================
+  COINCIDENCIA ESPACIAL: prediccion del modelo vs delitos
+  Fecha: 2026-07-01 22:47:07
+============================================================
+
+Delitos promedio por categoria PREDICHA (deberia crecer bajo<medio<alto):
+  bajo   : tiles=1532  media=0.14  mediana=0  delitos_tot=222
+  medio  : tiles= 614  media=1.56  mediana=1  delitos_tot=959
+  alto   : tiles= 457  media=8.83  mediana=6  delitos_tot=4035
+
+Los tiles predichos 'alto' son 17.6% del area y concentran 77.4% de los delitos.
+
+Acuerdo con la etiqueta real (todos los tiles): 78.7%
+Acuerdo en el conjunto de TEST (sin fuga): 77.2%  (n=372)
+(El acuerdo global es optimista porque incluye tiles de entrenamiento.)

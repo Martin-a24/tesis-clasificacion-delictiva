@@ -1,0 +1,89 @@
+{
+  "fecha": "2026-07-01T22:28:33.107018",
+  "architecture": "resnet18",
+  "n_test_tiles": 372,
+  "modelo": {
+    "accuracy": 0.771505376344086,
+    "f1_macro": 0.7038256937452528,
+    "f1_weighted": 0.7817186500535898,
+    "per_class": [
+      {
+        "clase": "bajo",
+        "precision": 0.9386792452830188,
+        "recall": 0.8291666666666667,
+        "f1": 0.8805309734513275,
+        "support": 240
+      },
+      {
+        "clase": "medio",
+        "precision": 0.4835164835164835,
+        "recall": 0.5789473684210527,
+        "f1": 0.5269461077844312,
+        "support": 76
+      },
+      {
+        "clase": "alto",
+        "precision": 0.6376811594202898,
+        "recall": 0.7857142857142857,
+        "f1": 0.704,
+        "support": 56
+      }
+    ]
+  },
+  "baseline_aleatorio": {
+    "accuracy": 0.3333333333333333,
+    "f1_macro": 0.29567321816792996,
+    "f1_weighted": 0.3701881341347147,
+    "per_class": [
+      {
+        "clase": "bajo",
+        "precision": 0.6587301587301587,
+        "recall": 0.3458333333333333,
+        "f1": 0.453551912568306,
+        "support": 240
+      },
+      {
+        "clase": "medio",
+        "precision": 0.1896551724137931,
+        "recall": 0.2894736842105263,
+        "f1": 0.22916666666666666,
+        "support": 76
+      },
+      {
+        "clase": "alto",
+        "precision": 0.14615384615384616,
+        "recall": 0.3392857142857143,
+        "f1": 0.20430107526881722,
+        "support": 56
+      }
+    ]
+  },
+  "baseline_mayoritario": {
+    "accuracy": 0.6451612903225806,
+    "f1_macro": 0.26143790849673204,
+    "f1_weighted": 0.5060088551549652,
+    "per_class": [
+      {
+        "clase": "bajo",
+        "precision": 0.6451612903225806,
+        "recall": 1.0,
+        "f1": 0.7843137254901961,
+        "support": 240
+      },
+      {
+        "clase": "medio",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 76
+      },
+      {
+        "clase": "alto",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 56
+      }
+    ]
+  }
+}

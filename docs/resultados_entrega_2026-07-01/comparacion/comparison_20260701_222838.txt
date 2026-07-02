@@ -1,0 +1,32 @@
+======================================================================
+  REPORTE COMPARATIVO DE ARQUITECTURAS
+  Fecha: 2026-07-01 22:42:33
+======================================================================
+
+METRICAS  (F1_val = validacion, usada para elegir; el resto es TEST):
+
+  Arquitectura            F1_val   Accuracy   F1 macro F1 weight.
+  -------------------- --------- ---------- ---------- ----------
+  resnet18                0.6967     0.7715     0.7038     0.7817
+  resnet50                0.7111     0.7634     0.7033     0.7728
+  efficientnet_b0         0.7190     0.7527     0.6908     0.7711
+
+MEJOR ARQUITECTURA (seleccionada por F1 macro en VALIDACION): efficientnet_b0
+  F1 macro (validacion, criterio): 0.7190
+  F1 macro (test, held-out para reporte): 0.6908
+  Nota: la seleccion NO mira el test; asi el F1 de test es una
+  estimacion honesta del desempeno del modelo elegido.
+
+F1 SCORE POR CLASE:
+
+  Arquitectura               bajo      medio       alto
+  ------------------------------ ---------- ----------
+  resnet18                 0.8805     0.5269     0.7040
+  resnet50                 0.8609     0.5455     0.7037
+  efficientnet_b0          0.8676     0.5572     0.6476
+
+BASELINES (calculados desde el primer modelo evaluado):
+  Aleatorio    F1 macro: 0.2957
+  Mayoritario  F1 macro: 0.2614
+
+======================================================================

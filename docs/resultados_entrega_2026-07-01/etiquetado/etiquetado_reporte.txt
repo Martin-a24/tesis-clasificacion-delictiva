@@ -1,0 +1,43 @@
+============================================================
+  REPORTE DE ETIQUETADO DE TILES
+  Fecha: 2026-06-21 18:57:12
+============================================================
+
+METODO: Conteo bruto de delitos
+Referencia: Almanie et al. (2018)
+
+METODOLOGIA: Umbrales globales sobre grilla virtual de Lima
+  Grilla virtual total: 22194 tiles
+  Tiles virtuales con delitos: 3305
+  Tiles virtuales sin delitos: 18889
+
+ESTADISTICAS DE DELITOS POR TILE VIRTUAL (con al menos 1 delito):
+  Min:    1
+  Max:    157
+  Media:  5.01
+  Mediana: 2
+  Percentil 25: 1
+  Percentil 50: 2
+  Percentil 75: 6
+  Percentil 95: 18
+  Percentil 99: 40
+
+UMBRALES APLICADOS:
+  Unidades: numero absoluto de delitos por tile
+  bajo:  densidad < 1.0000
+  medio: 1.0000 <= densidad < 4.0000
+  alto:  densidad >= 4.0000
+
+TILES REALES ETIQUETADOS: 2603
+
+Distribucion en tiles reales:
+  bajo      :  1678 (64.5%)
+  medio     :   533 (20.5%)
+  alto      :   392 (15.1%)
+
+Estadisticas de delitos por tile real:
+  Min:    0
+  Max:    122
+  Media:  2.00
+  Mediana: 0
+  Tiles sin delitos: 1678
