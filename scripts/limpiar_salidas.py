@@ -26,6 +26,7 @@ Uso:
     python scripts/limpiar_salidas.py --dry-run       # solo muestra, no borra
     python scripts/limpiar_salidas.py --si            # sin confirmacion
     python scripts/limpiar_salidas.py --incluir-pansharpened
+    python scripts/limpiar_salidas.py --desde-modelo  # solo 06 en adelante (re-entrenar)
 """
 
 import sys
@@ -126,23 +127,42 @@ def main():
                         help="Solo mostrar que se borraria, sin borrar.")
     parser.add_argument("--incluir-pansharpened", action="store_true",
                         help="Tambien borrar data/processed/imagenes_pansharpened (pesado).")
+    parser.add_argument("--desde-modelo", action="store_true",
+                        help="Borrar SOLO las salidas de 06 en adelante (models, results y "
+                             "tiles_predicciones.geojson). Conserva tiles, etiquetas y splits "
+                             "para re-entrenar sin rehacer 01-05.")
     args = parser.parse_args()
 
-    objetivos = list(SALIDAS)
-    if args.incluir_pansharpened and PANSHARPENED is not None:
-        objetivos.append(PANSHARPENED)
+    LABELS_DIR = ruta("paths", "labels")
+    PRED_GEOJSON = (LABELS_DIR / "tiles_predicciones.geojson") if LABELS_DIR else None
+
+    archivos_extra = []
+    if args.desde_modelo:
+        # Solo salidas de entrenamiento/evaluacion/interpretabilidad.
+        objetivos = [p for p in [ruta("paths", "models"), ruta("paths", "results")]
+                     if p is not None]
+        if PRED_GEOJSON is not None:
+            archivos_extra.append(PRED_GEOJSON)
+    else:
+        objetivos = list(SALIDAS)
+        if args.incluir_pansharpened and PANSHARPENED is not None:
+            objetivos.append(PANSHARPENED)
 
     print("=" * 60)
     print("  LIMPIEZA DE SALIDAS DEL PIPELINE")
     print("=" * 60)
     print("  Insumos preservados (NO se tocan): data/raw/ (delitos, imagenes,")
     print("  limites de Lima, worldpop).")
-    if not args.incluir_pansharpened:
+    if args.desde_modelo:
+        print("  MODO: solo 06 en adelante -> conserva tiles, etiquetas y splits;")
+        print("  borra models/, results/ y tiles_predicciones.geojson.")
+    elif not args.incluir_pansharpened:
         print("  pansharpened NO se borra (usa --incluir-pansharpened para incluirlo).")
     print()
 
     total_bytes = 0
     a_borrar = []
+    a_borrar_files = []
     for path in objetivos:
         ok, motivo = es_seguro(path)
         if not ok:
@@ -157,13 +177,26 @@ def main():
         if existe and n_items > 0:
             a_borrar.append(path)
 
+    for f in archivos_extra:
+        ok, motivo = es_seguro(f)
+        if not ok:
+            print(f"  OMITIDO (seguridad): {f}  [{motivo}]")
+            continue
+        if f.exists():
+            size = f.stat().st_size
+            total_bytes += size
+            print(f"  {'[dry-run] ' if args.dry_run else ''}{f.relative_to(PROJECT_ROOT)}  (archivo, {fmt(size)})")
+            a_borrar_files.append(f)
+        else:
+            print(f"  {f.relative_to(PROJECT_ROOT)}  (no existe)")
+
     print(f"\n  Espacio a liberar: {fmt(total_bytes)}")
 
     if args.dry_run:
         print("\n  (dry-run) No se borro nada.")
         return
 
-    if not a_borrar:
+    if not a_borrar and not a_borrar_files:
         print("\n  Nada que borrar. Todo limpio.")
         return
 
@@ -178,9 +211,15 @@ def main():
         n = vaciar(path, dry_run=False)
         path.mkdir(parents=True, exist_ok=True)  # conservar carpeta vacia
         print(f"  Vaciado: {path.relative_to(PROJECT_ROOT)}  ({n} items)")
+    for f in a_borrar_files:
+        f.unlink()
+        print(f"  Borrado: {f.relative_to(PROJECT_ROOT)}")
 
     print(f"\n  Listo. Espacio liberado: {fmt(total_bytes)}")
-    print("  Puedes re-ejecutar el pipeline desde scripts/01_limpiar_datos_delictivos.py")
+    if args.desde_modelo:
+        print("  Puedes re-entrenar desde scripts/06_entrenar_modelo.py (tiles/labels/splits intactos).")
+    else:
+        print("  Puedes re-ejecutar el pipeline desde scripts/01_limpiar_datos_delictivos.py")
     print("=" * 60)
 
 
