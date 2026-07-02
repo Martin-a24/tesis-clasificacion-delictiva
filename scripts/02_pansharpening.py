@@ -187,5 +187,5 @@ if __name__ == "__main__":
             f.write(line + "\n")
     print(f"  Log: {log_path}")
 
-    print(f"\n  SIGUIENTE PASO: python scripts/03_generar_tiles.py")
+    print(f"\n  SIGUIENTE PASO: python scripts/02b_construir_mosaico.py")
     print(f"{'='*60}")

@@ -251,6 +251,5 @@ if __name__ == "__main__":
 
     generar_reporte(df_final)
 
-    print(f"\n  SIGUIENTE PASO: scp el GeoJSON al servidor y ejecuta")
-    print(f"  python scripts/02_pansharpening.py")
+    print(f"\n  SIGUIENTE PASO: python scripts/02_pansharpening.py")
     print(f"{'='*60}")

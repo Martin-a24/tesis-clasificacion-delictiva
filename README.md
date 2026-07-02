@@ -67,27 +67,31 @@ input necesita cada paso y como agregar datos (imagenes, delitos).
 
 ## Pipeline
 
-1. **01_limpiar_datos_delictivos.py** - Consolida CSVs del MININTER en un
-   dataset filtrado de delitos patrimoniales georreferenciados.
-2. **02_pansharpening.py** - Aplica refinamiento pancromatico a imagenes
-   PeruSAT-1 (resolucion 2.8m -> 0.7m, 4 bandas).
-3. **02b_construir_mosaico.py** - Une las escenas pansharpened en un mosaico
-   virtual (VRT) para que cada ubicacion exista una sola vez (evita tiles
-   duplicados en el solape entre escenas).
-4. **03_generar_tiles.py** - Segmenta el mosaico en tiles de 512x512 px
-   alineados a una grilla global fija (cell_id estable), descartando bordes,
-   agua (NDWI) y zonas no urbanas.
-5. **04_etiquetar_tiles.py** - Cruza tiles con delitos y asigna nivel de
-   riesgo (bajo/medio/alto) por percentiles de densidad.
-6. **05_construir_splits.py** - Genera train/val/test con split estratificado
-   y agrupado por cell_id (evita fuga espacial).
-7. **06_entrenar_modelo.py** - Entrena la CNN (ResNet/EfficientNet/ViT).
-8. **07_evaluar_modelo.py** - Evalua metricas sobre el test.
-9. **08_comparar_arquitecturas.py** - Compara varias arquitecturas.
-10. **09_gradcam.py** - (Objetivo 3 / R6) Mapas Grad-CAM de interpretabilidad por
-    categoria de riesgo sobre el test.
-11. **10_zonificacion.py** - (Objetivo 3 / R8) Zonificacion de riesgo (predicciones
-    a geojson para QGIS) y coincidencia espacial con los delitos del MININTER.
+Los scripts se corren en orden (el numero del archivo indica el paso):
+
+- **01_limpiar_datos_delictivos.py** - Consolida CSVs del MININTER en un
+  dataset filtrado de delitos patrimoniales georreferenciados.
+- **02_pansharpening.py** - Aplica refinamiento pancromatico a imagenes
+  PeruSAT-1 (resolucion 2.8m -> 0.7m, 4 bandas).
+- **02b_construir_mosaico.py** - Une las escenas pansharpened en un mosaico
+  virtual (VRT) para que cada ubicacion exista una sola vez (evita tiles
+  duplicados en el solape entre escenas).
+- **03_generar_tiles.py** - Segmenta el mosaico en tiles de 512x512 px
+  alineados a una grilla global fija (cell_id estable), descartando bordes,
+  agua (NDWI) y zonas no urbanas.
+- **04_etiquetar_tiles.py** - Cruza tiles con delitos y asigna nivel de
+  riesgo (bajo/medio/alto) por percentiles de densidad.
+- **05_construir_splits.py** - Genera train/val/test con split estratificado
+  y agrupado por cell_id (evita fuga espacial).
+- **06_entrenar_modelo.py** - Entrena la CNN (ResNet/EfficientNet/ViT) con
+  transfer learning, class weights, augmentation y early stopping.
+- **07_evaluar_modelo.py** - Evalua metricas sobre el test (vs baselines).
+- **08_comparar_arquitecturas.py** - Compara varias arquitecturas y elige por
+  F1 de validacion.
+- **09_gradcam.py** - (Objetivo 3 / R6) Mapas Grad-CAM de interpretabilidad por
+  categoria de riesgo sobre el test.
+- **10_zonificacion.py** - (Objetivo 3 / R8) Zonificacion de riesgo (predicciones
+  a geojson para QGIS) y coincidencia espacial con los delitos del MININTER.
 
 Para el analisis de coherencia con la criminologia ambiental (R7) ver la
 plantilla `docs/R7_tabla_correspondencias.md`.
@@ -106,6 +110,14 @@ Scripts auxiliares:
   `data/raw/limites/`.
 - **limpiar_salidas.py** - Borra las salidas generadas para re-correr el
   pipeline desde cero (conserva `data/raw/`). Usar `--dry-run` para previsualizar.
+  Con `--desde-modelo` borra solo lo de 06 en adelante (para re-entrenar).
+
+## Documentacion
+
+- [`SETUP.md`](SETUP.md) - Guia de instalacion.
+- [`docs/RESULTADOS.md`](docs/RESULTADOS.md) - Mapa de outputs por script y su uso en la tesis.
+- [`docs/SELECCION_MODELO.md`](docs/SELECCION_MODELO.md) - Justificacion de la arquitectura elegida.
+- [`docs/R7_tabla_correspondencias.md`](docs/R7_tabla_correspondencias.md) - Plantilla de coherencia Grad-CAM vs criminologia ambiental.
 
 ## Datos
 
