@@ -144,6 +144,12 @@ def rama_git():
         return "?"
 
 
+def modelos_entrenados(cfg):
+    """Arquitecturas que ya tienen un modelo entrenado (models/*_best.pth)."""
+    mdir = PROJECT_ROOT / cfg.get("paths", {}).get("models", "models")
+    return sorted(p.name.replace("_best.pth", "") for p in mdir.glob("*_best.pth"))
+
+
 def imprimir_estado(cfg):
     print(c("=" * 60, "gris"))
     print(c("  PANEL DE CONTROL - Tesis Clasificacion Delictiva", "bold"))
@@ -151,6 +157,12 @@ def imprimir_estado(cfg):
     env = os.environ.get("CONDA_DEFAULT_ENV", "?")
     print(f"  rama git: {c(rama_git(),'cian')}   entorno conda: {c(env,'cian')}   "
           f"mosaico: {'on' if cfg.get('mosaico',{}).get('enabled') else 'off'}")
+    arch = cfg.get("modelo", {}).get("architecture", "?")
+    entrenados = modelos_entrenados(cfg)
+    disp = ["resnet18", "resnet50", "efficientnet_b0", "vit_b_16"]
+    ent_str = ", ".join(f"{c(a,'verde')}*" if a in entrenados else a for a in disp)
+    print(f"  modelo activo (07/09/10): {c(arch,'bold')}   [cambiar en 'c']")
+    print(f"  arquitecturas: {ent_str}   ({c('* = ya entrenado','gris')})")
     print()
     print(c("  PIPELINE", "bold"))
     marca = {"hecho": c("[OK]", "verde"),
