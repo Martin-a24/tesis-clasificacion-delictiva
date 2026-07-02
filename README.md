@@ -92,6 +92,15 @@ input necesita cada paso y como agregar datos (imagenes, delitos).
 Para el analisis de coherencia con la criminologia ambiental (R7) ver la
 plantilla `docs/R7_tabla_correspondencias.md`.
 
+### Seleccion del modelo (validacion vs test)
+
+La arquitectura y los hiperparametros se eligen mirando el conjunto de
+**validacion** (F1 macro). El conjunto de **test** se usa una sola vez, al final,
+sobre el modelo ya elegido, para reportar una metrica sin sesgo. Por eso
+`08_comparar_arquitecturas.py` selecciona la mejor arquitectura por su F1 de
+validacion, y `07`/`09`/`10` corren sobre la arquitectura fijada en
+`configs/config.yaml` (`modelo.architecture`).
+
 Scripts auxiliares:
 - **descargar_limites_lima.py** - Descarga/genera los limites de Lima en
   `data/raw/limites/`.

@@ -127,8 +127,25 @@ def cargar_metricas_recientes(arquitectura):
         return json.load(f)
 
 
-def construir_tabla_comparativa(resultados):
-    """Construye un DataFrame con metricas comparativas."""
+def cargar_val_f1(arquitectura):
+    """F1 macro en VALIDACION (mejor epoca) desde el log de entrenamiento.
+    Se usa para SELECCIONAR arquitectura sin mirar el test."""
+    archivos = sorted(RESULTS_DIR.glob(f"training_log_{arquitectura}_*.csv"),
+                      key=lambda p: p.stat().st_mtime, reverse=True)
+    if not archivos:
+        return None
+    try:
+        df = pd.read_csv(archivos[0])
+        if "val_f1" in df.columns and len(df):
+            return float(df["val_f1"].max())
+    except Exception:
+        pass
+    return None
+
+
+def construir_tabla_comparativa(resultados, val_f1s):
+    """Construye un DataFrame con metricas comparativas.
+    f1_macro_val = criterio de SELECCION (validacion); el resto es TEST."""
     filas = []
 
     for arq, data in resultados.items():
@@ -138,6 +155,7 @@ def construir_tabla_comparativa(resultados):
         metricas = data["modelo"]
         fila = {
             "arquitectura": arq,
+            "f1_macro_val": val_f1s.get(arq),
             "accuracy": metricas["accuracy"],
             "f1_macro": metricas["f1_macro"],
             "f1_weighted": metricas["f1_weighted"],
@@ -184,7 +202,8 @@ def graficar_comparacion(df_comparacion, output_path):
     axes[0].grid(alpha=0.3, axis="y")
 
     # 2. F1 por clase
-    cols_f1_clase = [c for c in df_comparacion.columns if c.startswith("f1_") and c not in ["f1_macro", "f1_weighted"]]
+    cols_f1_clase = [c for c in df_comparacion.columns
+                     if c.startswith("f1_") and c not in ["f1_macro", "f1_weighted", "f1_macro_val"]]
     clases = [c.replace("f1_", "") for c in cols_f1_clase]
 
     for i, clase in enumerate(clases):
@@ -220,27 +239,42 @@ def generar_reporte_comparativo(df_comparacion, resultados, output_path):
             f.write("\n".join(lines))
         return
 
-    # Tabla de metricas globales
-    lines.append("METRICAS GLOBALES:")
+    # Tabla de metricas: F1 val (seleccion) + metricas de TEST (reporte)
+    lines.append("METRICAS  (F1_val = validacion, usada para elegir; el resto es TEST):")
     lines.append("")
-    lines.append(f"  {'Arquitectura':<20} {'Accuracy':>10} {'F1 macro':>10} {'F1 weight.':>10}")
-    lines.append(f"  {'-' * 20} {'-' * 10} {'-' * 10} {'-' * 10}")
+    lines.append(f"  {'Arquitectura':<20} {'F1_val':>9} {'Accuracy':>10} {'F1 macro':>10} {'F1 weight.':>10}")
+    lines.append(f"  {'-' * 20} {'-' * 9} {'-' * 10} {'-' * 10} {'-' * 10}")
     for _, row in df_comparacion.iterrows():
+        val_str = f"{row['f1_macro_val']:.4f}" if pd.notna(row.get("f1_macro_val")) else "n/a"
         lines.append(f"  {row['arquitectura']:<20} "
+                      f"{val_str:>9} "
                       f"{row['accuracy']:>10.4f} "
                       f"{row['f1_macro']:>10.4f} "
                       f"{row['f1_weighted']:>10.4f}")
     lines.append("")
 
-    # Mejor arquitectura
-    mejor_idx = df_comparacion["f1_macro"].idxmax()
+    # Mejor arquitectura: se SELECCIONA por F1 de VALIDACION (no por test), para
+    # que el F1 de test que se reporta sea una estimacion honesta (sin fuga).
+    if df_comparacion["f1_macro_val"].notna().any():
+        mejor_idx = df_comparacion["f1_macro_val"].idxmax()
+        criterio = "F1 macro en VALIDACION"
+    else:
+        mejor_idx = df_comparacion["f1_macro"].idxmax()
+        criterio = "F1 macro en TEST (fallback: no habia F1 de validacion)"
     mejor_arq = df_comparacion.loc[mejor_idx, "arquitectura"]
-    mejor_f1 = df_comparacion.loc[mejor_idx, "f1_macro"]
-    lines.append(f"MEJOR ARQUITECTURA (segun F1 macro): {mejor_arq} (F1 = {mejor_f1:.4f})")
+    val_sel = df_comparacion.loc[mejor_idx, "f1_macro_val"]
+    test_sel = df_comparacion.loc[mejor_idx, "f1_macro"]
+    lines.append(f"MEJOR ARQUITECTURA (seleccionada por {criterio}): {mejor_arq}")
+    if pd.notna(val_sel):
+        lines.append(f"  F1 macro (validacion, criterio): {val_sel:.4f}")
+    lines.append(f"  F1 macro (test, held-out para reporte): {test_sel:.4f}")
+    lines.append("  Nota: la seleccion NO mira el test; asi el F1 de test es una")
+    lines.append("  estimacion honesta del desempeno del modelo elegido.")
     lines.append("")
 
     # F1 por clase
-    cols_f1_clase = [c for c in df_comparacion.columns if c.startswith("f1_") and c not in ["f1_macro", "f1_weighted"]]
+    cols_f1_clase = [c for c in df_comparacion.columns
+                     if c.startswith("f1_") and c not in ["f1_macro", "f1_weighted", "f1_macro_val"]]
     clases = [c.replace("f1_", "") for c in cols_f1_clase]
 
     if clases:
@@ -308,6 +342,7 @@ if __name__ == "__main__":
 
     inicio_total = time.time()
     resultados = {}
+    val_f1s = {}
 
     try:
         for i, arq in enumerate(args.arquitecturas, 1):
@@ -330,9 +365,10 @@ if __name__ == "__main__":
                 print(f"  Saltando {arq} debido a error en evaluacion")
                 continue
 
-            # Cargar metricas
+            # Cargar metricas (test) y F1 de validacion (para seleccionar)
             metricas = cargar_metricas_recientes(arq)
             resultados[arq] = metricas
+            val_f1s[arq] = cargar_val_f1(arq)
 
     finally:
         # Restaurar config original
@@ -346,7 +382,7 @@ if __name__ == "__main__":
     print(f"  Tiempo total: {duracion_total / 60:.1f} minutos")
     print(f"{'=' * 70}\n")
 
-    df_comparacion = construir_tabla_comparativa(resultados)
+    df_comparacion = construir_tabla_comparativa(resultados, val_f1s)
 
     # Guardar reportes
     if df_comparacion is not None:
